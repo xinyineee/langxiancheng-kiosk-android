@@ -30,6 +30,9 @@ class SunmiNfcService @Inject constructor(
     /** Sunmi NfcManager singleton for hardware control. */
     private val nfcManager = NfcManager
 
+    /** Registered NFC listener, kept for unregistration. */
+    private var nfcListener: INfcListener.Stub? = null
+
     /** Whether the service is successfully initialized and bound. */
     var isInitialized: Boolean = false
         private set
@@ -128,6 +131,7 @@ class SunmiNfcService @Inject constructor(
                     }
                 }
             }
+            nfcListener = listener
             nfcManager.registerNfcListener(listener)
             Log.d(TAG, "NFC listener registered")
         } catch (e: Exception) {
@@ -140,8 +144,9 @@ class SunmiNfcService @Inject constructor(
      */
     fun release() {
         try {
-            nfcManager.unregisterNfcListener()
+            nfcListener?.let { nfcManager.unregisterNfcListener(it) }
             nfcManager.destroy(context)
+            nfcListener = null
             isInitialized = false
             isUnderScreenNfcActive = false
             Log.d(TAG, "Sunmi NFC service released")
