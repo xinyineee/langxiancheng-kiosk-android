@@ -74,29 +74,31 @@ fun IdleScreen(
             verticalArrangement = Arrangement.Center
         ) {
             // Breathing coffee icon
-            BreathAnimation {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    OrangePrimary.copy(alpha = 0.2f),
-                                    OrangePrimary.copy(alpha = 0.05f)
+            BreathAnimation(
+                content = {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        OrangePrimary.copy(alpha = 0.2f),
+                                        OrangePrimary.copy(alpha = 0.05f)
+                                    )
                                 )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Coffee,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = OrangePrimary
-                    )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Coffee,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = OrangePrimary
+                        )
+                    }
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -124,26 +126,28 @@ fun IdleScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             // Touch prompt
-            BreathAnimation {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.TouchApp,
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        tint = OrangePrimary.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "触摸屏幕开始测试",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        textAlign = TextAlign.Center
-                    )
+            BreathAnimation(
+                content = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.TouchApp,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = OrangePrimary.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "触摸屏幕开始测试",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
