@@ -74,22 +74,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d(TAG, "onNewIntent: action=${intent?.action}")
+        Log.d(TAG, "onNewIntent: action=${intent.action}")
 
-        if (intent != null) {
-            val tag = when (intent.action) {
-                NfcAdapter.ACTION_TAG_DISCOVERED,
-                NfcAdapter.ACTION_NDEF_DISCOVERED,
-                NfcAdapter.ACTION_TECH_DISCOVERED -> intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-                else -> null
-            }
+        val tag = when (intent.action) {
+            NfcAdapter.ACTION_TAG_DISCOVERED,
+            NfcAdapter.ACTION_NDEF_DISCOVERED,
+            NfcAdapter.ACTION_TECH_DISCOVERED -> intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            else -> null
+        }
 
-            if (tag != null) {
-                Log.d(TAG, "NFC tag discovered: ${tag.techList.joinToString()}")
-                handleNfcTagDiscovered(tag)
-            }
+        if (tag != null) {
+            Log.d(TAG, "NFC tag discovered: ${tag.techList.joinToString()}")
+            handleNfcTagDiscovered(tag)
         }
     }
 

@@ -28,7 +28,7 @@ class SunmiNfcService @Inject constructor(
 ) {
 
     /** Sunmi NfcManager singleton for hardware control. */
-    private val nfcManager: NfcManager = NfcManager.INSTANCE
+    private val nfcManager = NfcManager
 
     /** Whether the service is successfully initialized and bound. */
     var isInitialized: Boolean = false
