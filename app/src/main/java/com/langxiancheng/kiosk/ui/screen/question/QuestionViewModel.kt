@@ -6,6 +6,7 @@ import com.langxiancheng.kiosk.data.engine.TestEngine
 import com.langxiancheng.kiosk.data.model.AnswerOption
 import com.langxiancheng.kiosk.data.model.TestResult
 import com.langxiancheng.kiosk.data.repository.TestDataRepository
+import com.langxiancheng.kiosk.service.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,20 +18,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel managing the question screen state and test flow.
+ * ViewModel managing the question screen state, test flow, and voice interaction.
  * Handles:
  * - Loading questions from the repository
  * - Tracking selected answers
  * - Per-question countdown timer (5 seconds)
  * - Total test timeout (30 seconds)
  * - Auto-selection on timeout (defaults to option A)
+ * - TTS voice reading of questions and options
  * - Advancing to the next question or completing the test
  * - Computing and persisting TestResult via repository for ResultViewModel
  */
 @HiltViewModel
 class QuestionViewModel @Inject constructor(
     private val repository: TestDataRepository,
-    private val testEngine: TestEngine
+    private val testEngine: TestEngine,
+    private val ttsService: TtsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuestionUiState())
@@ -53,11 +56,11 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Initializes the question flow starting from the given index.
-     *
-     * @param questionIndex Zero-based question index (0-4)
+     * Also triggers TTS to read the question aloud.
      */
     fun startQuestion(questionIndex: Int) {
         timerJob?.cancel()
+        ttsService.stop()
 
         val question = repository.questions.getOrNull(questionIndex) ?: return
 
@@ -85,13 +88,25 @@ class QuestionViewModel @Inject constructor(
             )
         }
 
+        // Voice: read question and options
+        speakCurrentQuestion()
+
         startCountdown()
     }
 
     /**
+     * Reads the current question and all options via TTS.
+     */
+    fun speakCurrentQuestion() {
+        val state = _uiState.value
+        val question = repository.questions.getOrNull(state.currentQuestionIndex) ?: return
+        val optionTexts = question.options.map { it.optionText }
+        ttsService.speakQuestion(question.questionText, optionTexts)
+    }
+
+    /**
      * Handles the user selecting an answer option.
-     *
-     * @param optionLabel The label of the selected option (A/B/C/D)
+     * Also provides TTS feedback for the selection.
      */
     fun selectOption(optionLabel: String) {
         val questionIndex = _uiState.value.currentQuestionIndex
@@ -100,6 +115,9 @@ class QuestionViewModel @Inject constructor(
 
         selectedAnswers[questionIndex] = selectedOption
         timerJob?.cancel()
+
+        // TTS feedback
+        ttsService.speakSelectionFeedback(optionLabel)
 
         _uiState.update { currentState ->
             currentState.copy(
@@ -114,16 +132,11 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Advances to the next question or signals test completion.
-     * When the test is complete (all questions answered or total timeout),
-     * computes the TestResult and saves it to the repository for ResultViewModel.
-     *
-     * @return Next question index, or -1 if the test is complete
      */
     fun advanceToNextQuestion(): Int {
         val currentIndex = _uiState.value.currentQuestionIndex
         val nextIndex = currentIndex + 1
 
-        // Check if total time has expired — force finish regardless of remaining questions
         if (isTotalTimedOut || nextIndex >= repository.getQuestionCount()) {
             finishTest()
             return -1
@@ -135,21 +148,16 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Computes the final test result and saves it to the repository.
-     * Called when all questions are answered OR when total timeout expires.
      */
     private fun finishTest() {
         totalTimerJob?.cancel()
         timerJob?.cancel()
+        ttsService.stop()
 
         val result = testEngine.computeResult(selectedAnswers)
         repository.setLastResult(result)
     }
 
-    /**
-     * Computes the final test result using the scoring engine.
-     *
-     * @return TestResult with the recommended drink
-     */
     fun computeTestResult(): TestResult {
         return testEngine.computeResult(selectedAnswers)
     }
@@ -162,9 +170,11 @@ class QuestionViewModel @Inject constructor(
         val questionIndex = _uiState.value.currentQuestionIndex
         val question = repository.questions.getOrNull(questionIndex) ?: return
 
-        // Default to option A on timeout
         val defaultOption = question.options.firstOrNull() ?: return
         selectedAnswers[questionIndex] = defaultOption
+
+        // TTS: time warning
+        ttsService.speakTimeWarning()
 
         _uiState.update { currentState ->
             currentState.copy(
@@ -180,7 +190,6 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Starts the per-question countdown timer.
-     * Ticks every 100ms for smooth progress bar animation.
      */
     private fun startCountdown() {
         timerJob?.cancel()
@@ -204,8 +213,6 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Starts the total test timeout timer (30 seconds).
-     * If the total time expires, auto-selects defaults for unanswered questions
-     * and forces navigation to the result screen.
      */
     private fun startTotalTimer() {
         totalTimerJob?.cancel()
@@ -227,13 +234,10 @@ class QuestionViewModel @Inject constructor(
 
     /**
      * Handles total test timeout.
-     * Auto-selects option A for all unanswered questions,
-     * then forces navigation to the result screen.
      */
     private fun handleTotalTimeout() {
         timerJob?.cancel()
 
-        // Auto-select option A for any unanswered questions
         val totalQuestions = repository.getQuestionCount()
         for (index in 0 until totalQuestions) {
             if (selectedAnswers[index] == null) {
@@ -243,7 +247,6 @@ class QuestionViewModel @Inject constructor(
             }
         }
 
-        // Update UI to show timeout state and trigger navigation
         _uiState.update { currentState ->
             currentState.copy(
                 isTimedOut = true,
@@ -253,39 +256,26 @@ class QuestionViewModel @Inject constructor(
             )
         }
 
-        // Compute and save result immediately
         finishTest()
     }
 
-    /**
-     * Gets the currently selected answer option for the given question.
-     */
     fun getSelectedAnswer(questionIndex: Int): AnswerOption? {
         return selectedAnswers[questionIndex]
     }
 
-    /**
-     * Returns whether the total test timeout has been triggered.
-     */
     fun isTotalTimedOut(): Boolean = isTotalTimedOut
 
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
         totalTimerJob?.cancel()
+        ttsService.stop()
     }
 
     companion object {
-        /** Single question timeout in milliseconds. */
         const val SINGLE_QUESTION_TIMEOUT_MS = 5000L
-
-        /** Total test timeout in milliseconds. */
         const val TOTAL_TEST_TIMEOUT_MS = 30000L
-
-        /** Per-question timer tick interval for smooth animation. */
         private const val TIMER_TICK_INTERVAL_MS = 100L
-
-        /** Total timer tick interval. */
         private const val TOTAL_TIMER_TICK_MS = 500L
     }
 }

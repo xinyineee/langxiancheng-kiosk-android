@@ -7,6 +7,7 @@ import com.langxiancheng.kiosk.data.model.TestResult
 import com.langxiancheng.kiosk.data.repository.TestDataRepository
 import com.langxiancheng.kiosk.service.NfcWriteService
 import com.langxiancheng.kiosk.service.TimerService
+import com.langxiancheng.kiosk.service.TtsService
 import com.langxiancheng.kiosk.ui.component.NfcWriteState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -19,18 +20,20 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel managing the result screen state.
+ * ViewModel managing the result screen state with TTS voice feedback.
  * Handles:
- * - Loading the test result from the shared repository (set by QuestionViewModel)
- * - NFC tag writing
- * - Auto-return to idle after 15 seconds
+ * - Loading the test result from the shared repository
+ * - NFC tag writing with voice feedback
+ * - Auto-return to idle after 30 seconds
+ * - TTS result announcement
  */
 @HiltViewModel
 class ResultViewModel @Inject constructor(
     private val repository: TestDataRepository,
     private val testEngine: TestEngine,
     private val nfcWriteService: NfcWriteService,
-    private val timerService: TimerService
+    private val timerService: TimerService,
+    private val ttsService: TtsService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ResultUiState())
@@ -42,11 +45,12 @@ class ResultViewModel @Inject constructor(
     /** Auto-return timer job. */
     private var idleTimerJob: Job? = null
 
+    /** Whether TTS has already announced the result. */
+    private var hasAnnouncedResult: Boolean = false
+
     /**
      * Loads the test result from the shared repository.
-     * Called when the result screen is first composed.
-     * QuestionViewModel.finishTest() saves the result to repository.lastResult
-     * before navigating here, so it should always be available.
+     * Triggers TTS announcement on first load.
      */
     fun loadResult() {
         val result = repository.lastResult
@@ -56,14 +60,28 @@ class ResultViewModel @Inject constructor(
     }
 
     /**
-     * Sets the test result for display and starts the idle timer.
-     *
-     * @param result The computed test result
+     * Sets the test result for display, starts idle timer, and announces via TTS.
      */
     fun setTestResult(result: TestResult) {
         testResult = result
         _uiState.update { it.copy(recommendedDrink = result.recommendedDrink) }
         startIdleTimer()
+
+        // TTS: announce result
+        if (!hasAnnouncedResult) {
+            hasAnnouncedResult = true
+            val drink = result.recommendedDrink
+            ttsService.speakResult(drink.name, drink.tagline, drink.heartCopy)
+        }
+    }
+
+    /**
+     * Replays the result announcement via TTS.
+     */
+    fun speakResultAgain() {
+        val result = testResult ?: return
+        val drink = result.recommendedDrink
+        ttsService.speakResult(drink.name, drink.tagline, drink.heartCopy)
     }
 
     /**
@@ -82,11 +100,18 @@ class ResultViewModel @Inject constructor(
                     it.copy(nfcWriteState = if (success) NfcWriteState.SUCCESS else NfcWriteState.FAILURE)
                 }
 
-                // Reset NFC state after 3 seconds
+                // TTS feedback
+                if (success) {
+                    ttsService.speakNfcSuccess()
+                } else {
+                    ttsService.speakNfcFailed()
+                }
+
                 delay(3000L)
                 _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(nfcWriteState = NfcWriteState.FAILURE) }
+                ttsService.speakNfcFailed()
                 delay(3000L)
                 _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
             }
@@ -95,14 +120,13 @@ class ResultViewModel @Inject constructor(
 
     /**
      * Builds the NFC result URL.
-     * Format: https://cafe.langxiancheng.com/result?d={drinkId}&s={scoreHash}&t={timestamp}
      */
     private fun buildResultUrl(result: TestResult): String {
         return "https://cafe.langxiancheng.com/result?d=${result.recommendedDrink.id}&s=${result.scoreHash}&t=${result.timestamp}"
     }
 
     /**
-     * Starts the 15-second idle timer that auto-returns to the idle screen.
+     * Starts the 30-second idle timer that auto-returns to the idle screen.
      */
     private fun startIdleTimer() {
         idleTimerJob?.cancel()
@@ -123,29 +147,28 @@ class ResultViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Resets the idle timer (called on user interaction).
-     */
     fun resetIdleTimer() {
         startIdleTimer()
     }
 
-    /**
-     * Returns whether the idle timer has expired.
-     */
     fun isIdleTimerExpired(): Boolean {
         return _uiState.value.remainingIdleTimeMs <= 0L
     }
 
-    /**
-     * Clears the result from the repository (called when returning to idle).
-     */
     fun clearResult() {
         repository.clearLastResult()
+        ttsService.stop()
+        hasAnnouncedResult = false
     }
 
     override fun onCleared() {
         super.onCleared()
         idleTimerJob?.cancel()
+        ttsService.stop()
+    }
+
+    companion object {
+        /** Result screen idle timeout in milliseconds (30 seconds). */
+        const val RESULT_IDLE_TIMEOUT_MS = 30000L
     }
 }

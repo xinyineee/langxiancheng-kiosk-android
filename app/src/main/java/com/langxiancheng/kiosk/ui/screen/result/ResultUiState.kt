@@ -19,4 +19,4 @@ data class ResultUiState(
 )
 
 /** Result screen auto-return timeout in milliseconds. */
-const val RESULT_IDLE_TIMEOUT_MS = 15000L
+const val RESULT_IDLE_TIMEOUT_MS = 30000L

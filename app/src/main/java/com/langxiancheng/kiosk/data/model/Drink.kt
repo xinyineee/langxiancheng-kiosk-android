@@ -9,7 +9,8 @@ package com.langxiancheng.kiosk.data.model
  * @property tagline Short motto/slogan for the drink
  * @property heartCopy Emotional/inspirational copy for the result card
  * @property colorHex Brand color hex for this drink's accent
- * @property emoji Decorative emoji for display
+ * @property emoji Decorative emoji for display (fallback)
+ * @property drawableResId Android drawable resource ID for the drink illustration image
  */
 data class Drink(
     val id: String,
@@ -18,5 +19,6 @@ data class Drink(
     val tagline: String,
     val heartCopy: String,
     val colorHex: String = "#FF6B1A",
-    val emoji: String = "☕"
+    val emoji: String = "☕",
+    val drawableResId: Int? = null
 )

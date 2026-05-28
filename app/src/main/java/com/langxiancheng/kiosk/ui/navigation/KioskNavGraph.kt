@@ -2,6 +2,7 @@ package com.langxiancheng.kiosk.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -12,6 +13,7 @@ import com.langxiancheng.kiosk.ui.screen.idle.IdleScreen
 import com.langxiancheng.kiosk.ui.screen.question.QuestionScreen
 import com.langxiancheng.kiosk.ui.screen.result.ResultScreen
 import com.langxiancheng.kiosk.ui.screen.welcome.WelcomeScreen
+import com.langxiancheng.kiosk.ui.viewmodel.KioskSharedViewModel
 
 /**
  * Navigation route constants for the Kiosk application.
@@ -29,12 +31,16 @@ object KioskRoutes {
 /**
  * Main navigation graph for the Kiosk application.
  * Flow: idle → welcome → question/{index} (0-4) → result
+ * Integrated with TTS voice prompts at each screen transition.
  */
 @Composable
 fun KioskNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    val sharedViewModel: KioskSharedViewModel = hiltViewModel()
+    val ttsService = sharedViewModel.ttsService
+
     NavHost(
         navController = navController,
         startDestination = KioskRoutes.IDLE,
@@ -46,6 +52,9 @@ fun KioskNavGraph(
                     navController.navigate(KioskRoutes.WELCOME) {
                         popUpTo(KioskRoutes.IDLE) { inclusive = true }
                     }
+                },
+                onScreenVisible = {
+                    ttsService.speakWelcome()
                 }
             )
         }
@@ -56,6 +65,9 @@ fun KioskNavGraph(
                     navController.navigate(KioskRoutes.questionRoute(0)) {
                         popUpTo(KioskRoutes.WELCOME) { inclusive = true }
                     }
+                },
+                onScreenVisible = {
+                    ttsService.speakWelcomeIntro()
                 }
             )
         }

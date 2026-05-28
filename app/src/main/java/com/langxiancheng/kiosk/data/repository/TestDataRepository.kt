@@ -1,5 +1,6 @@
 package com.langxiancheng.kiosk.data.repository
 
+import com.langxiancheng.kiosk.R
 import com.langxiancheng.kiosk.data.model.AnswerOption
 import com.langxiancheng.kiosk.data.model.Drink
 import com.langxiancheng.kiosk.data.model.Question
@@ -36,7 +37,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "每天都是新的起跑线",
             heartCopy = "每一个起点，都藏着你最好的可能。今天，就是你的新起跑线。",
             colorHex = "#FFB347",
-            emoji = "🍐"
+            emoji = "🍐",
+            drawableResId = R.drawable.drink_d1_pearfect
         ),
         Drink(
             id = "D2",
@@ -45,7 +47,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "创业初期的复杂滋味，但值得",
             heartCopy = "路不是直的，味道也不是简单的。但复杂里，藏着最真实的你。",
             colorHex = "#C06C84",
-            emoji = "🫐"
+            emoji = "🫐",
+            drawableResId = R.drawable.drink_d2_berry
         ),
         Drink(
             id = "D3",
@@ -54,7 +57,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "拼这一次，不问结果",
             heartCopy = "不是每次拼搏都有结果，但每次拼搏都有意义。这一杯，献给此刻的你。",
             colorHex = "#FF6B1A",
-            emoji = "💪"
+            emoji = "💪",
+            drawableResId = R.drawable.drink_d3_happy
         ),
         Drink(
             id = "D4",
@@ -63,7 +67,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "从混沌到清晰，创业的第一缕光",
             heartCopy = "混乱之后，清晨终会来临。你已经走过最暗的那段路了。",
             colorHex = "#FF8C42",
-            emoji = "🌅"
+            emoji = "🌅",
+            drawableResId = R.drawable.drink_d4_sunmi
         ),
         Drink(
             id = "D5",
@@ -72,7 +77,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "路还长，但已经闻到桂花香",
             heartCopy = "不用急，慢慢来。走得稳的人，最终都能闻到桂花香。",
             colorHex = "#D4A574",
-            emoji = "🍂"
+            emoji = "🍂",
+            drawableResId = R.drawable.drink_d5_coldbrew
         ),
         Drink(
             id = "D6",
@@ -81,7 +87,8 @@ class TestDataRepository @Inject constructor() {
             tagline = "熬过层层，开心上岸，这一杯，值得庆祝",
             heartCopy = "熬过来了。真的熬过来了。这一杯，是你给自己最好的礼物。",
             colorHex = "#E8C07D",
-            emoji = "🎉"
+            emoji = "🎉",
+            drawableResId = R.drawable.drink_d6_milkbrick
         )
     )
 
