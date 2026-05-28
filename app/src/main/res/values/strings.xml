@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">浪险橙咖啡</string>
+    <string name="slogan">我们一起浪，一起险，一起成</string>
+    <string name="nfc_prompt">将杯子放在感应区</string>
+    <string name="start_test">开始测试</string>
+    <string name="next_question">下一题</string>
+    <string name="view_result">查看结果</string>
+    <string name="test_again">再测一次</string>
+    <string name="timeout_hint">时间到，已自动选择</string>
+    <string name="nfc_writing">正在写入NFC…</string>
+    <string name="nfc_success">写入成功！</string>
+    <string name="nfc_failure">写入失败，请重试</string>
+    <string name="speech_hint">试试说"浪"、"险"或"成"</string>
+    <string name="question_prefix">第 %1$d 题</string>
+    <string name="progress_format">%1$d / %2$d</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Orange circle background -->
+    <path
+        android:fillColor="#FF6B1A"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"/>
+    <!-- Simple citrus/leaf icon in white -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 C42,30 34,40 34,50 C34,62 42,74 54,78 C66,74 74,62 74,50 C74,40 66,30 54,30Z"/>
+    <!-- Leaf -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M54,24 C50,18 44,16 38,18 C42,22 48,26 54,24Z"/>
+</vector>
