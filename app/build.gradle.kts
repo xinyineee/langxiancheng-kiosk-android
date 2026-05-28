@@ -76,4 +76,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+
+    // Sunmi Peripheral SDK (local AAR for FLEX 3 NFC module control)
+    implementation(files("libs/sunmiperipher_sdk_v1.0.2.aar"))
 }

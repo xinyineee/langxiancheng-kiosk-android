@@ -21,11 +21,13 @@ import javax.inject.Inject
 
 /**
  * ViewModel managing the result screen state with TTS voice feedback.
- * Handles:
- * - Loading the test result from the shared repository
- * - NFC tag writing with voice feedback
- * - Auto-return to idle after 30 seconds
- * - TTS result announcement
+ *
+ * NFC Flow:
+ * 1. User taps "写入NFC" button → [writeNfcTag] calls [NfcWriteService.prepareWrite]
+ * 2. [NfcWriteService.writeState] becomes WRITING → UI shows "请将手机靠近NFC标签"
+ * 3. MainActivity discovers NFC tag → calls [NfcWriteService.writePendingTag]
+ * 4. [NfcWriteService.writeState] becomes SUCCESS/FAILURE → UI updates + TTS feedback
+ * 5. After 3 seconds, state resets to IDLE
  */
 @HiltViewModel
 class ResultViewModel @Inject constructor(
@@ -48,6 +50,29 @@ class ResultViewModel @Inject constructor(
     /** Whether TTS has already announced the result. */
     private var hasAnnouncedResult: Boolean = false
 
+    /** State reset job for NFC feedback timeout. */
+    private var nfcStateResetJob: Job? = null
+
+    init {
+        // Observe NFC write state from NfcWriteService
+        viewModelScope.launch {
+            nfcWriteService.writeState.collect { state ->
+                when (state) {
+                    NfcWriteState.SUCCESS -> {
+                        ttsService.speakNfcSuccess()
+                        scheduleNfcStateReset()
+                    }
+                    NfcWriteState.FAILURE -> {
+                        ttsService.speakNfcFailed()
+                        scheduleNfcStateReset()
+                    }
+                    else -> {}
+                }
+                _uiState.update { it.copy(nfcWriteState = state) }
+            }
+        }
+    }
+
     /**
      * Loads the test result from the shared repository.
      * Triggers TTS announcement on first load.
@@ -67,7 +92,6 @@ class ResultViewModel @Inject constructor(
         _uiState.update { it.copy(recommendedDrink = result.recommendedDrink) }
         startIdleTimer()
 
-        // TTS: announce result
         if (!hasAnnouncedResult) {
             hasAnnouncedResult = true
             val drink = result.recommendedDrink
@@ -85,36 +109,38 @@ class ResultViewModel @Inject constructor(
     }
 
     /**
-     * Triggers writing the result URL to an NFC tag.
+     * Triggers NFC write preparation.
+     * Sets up the URL and enters waiting-for-tap state.
+     * Actual write happens when a tag is discovered (handled by MainActivity).
      */
     fun writeNfcTag() {
         val result = testResult ?: return
-        _uiState.update { it.copy(nfcWriteState = NfcWriteState.WRITING) }
+
+        // Cancel any previous NFC state reset
+        nfcStateResetJob?.cancel()
 
         val url = buildResultUrl(result)
+        nfcWriteService.prepareWrite(url)
+    }
 
-        viewModelScope.launch {
-            try {
-                val success = nfcWriteService.writeNdefUrl(url)
-                _uiState.update {
-                    it.copy(nfcWriteState = if (success) NfcWriteState.SUCCESS else NfcWriteState.FAILURE)
-                }
+    /**
+     * Cancels the pending NFC write and resets state.
+     */
+    fun cancelNfcWrite() {
+        nfcStateResetJob?.cancel()
+        nfcWriteService.cancelPendingWrite()
+        _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
+    }
 
-                // TTS feedback
-                if (success) {
-                    ttsService.speakNfcSuccess()
-                } else {
-                    ttsService.speakNfcFailed()
-                }
-
-                delay(3000L)
-                _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(nfcWriteState = NfcWriteState.FAILURE) }
-                ttsService.speakNfcFailed()
-                delay(3000L)
-                _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
-            }
+    /**
+     * Schedules a reset of the NFC write state to IDLE after 3 seconds.
+     */
+    private fun scheduleNfcStateReset() {
+        nfcStateResetJob?.cancel()
+        nfcStateResetJob = viewModelScope.launch {
+            delay(3000L)
+            nfcWriteService.resetWriteState()
+            _uiState.update { it.copy(nfcWriteState = NfcWriteState.IDLE) }
         }
     }
 
@@ -164,6 +190,7 @@ class ResultViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         idleTimerJob?.cancel()
+        nfcStateResetJob?.cancel()
         ttsService.stop()
     }
 

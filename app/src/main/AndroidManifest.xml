@@ -9,9 +9,10 @@
     <!-- Internet for potential future features -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- NFC hardware required for kiosk NFC tag writing -->
     <uses-feature
         android:name="android.hardware.nfc"
-        android:required="false" />
+        android:required="true" />
 
     <application
         android:name=".KioskApp"
@@ -30,17 +31,33 @@
             android:windowSoftInputMode="stateAlwaysHidden"
             android:launchMode="singleTask">
 
-            <!-- NFC NDEF intent filter -->
+            <!-- NFC intent filters - catch all NFC tag types -->
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="application/vnd.com.langxiancheng.kiosk" />
+                <data android:mimeType="*/*" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Specify NFC tech list for TECH_DISCOVERED -->
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/nfc_tech_filter" />
         </activity>
 
         <!-- Kiosk Lock Service -->
